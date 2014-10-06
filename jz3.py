@@ -34,7 +34,7 @@ def open_db():
     return lmdb.open(db_path, map_size=MAP_SIZE)
 
 
-def http_read(s, env):
+def http_request(s, env):
     while True:
         try:
             p = HttpStream(SocketReader(s))
@@ -54,7 +54,6 @@ def http_read(s, env):
                 'Content-Length: 0\n'
                 'Server: jz/0.1.0\n\r\n\r\n')
         except NoMoreData:
-            print("done")
             break
 
 
@@ -65,7 +64,7 @@ def worker(conn):
     while True:
         s = socket.fromfd(reduction.recv_handle(conn), socket.AF_INET, socket.SOCK_STREAM)
         s.setblocking(1)
-        http_read(s, env)
+        http_request(s, env)
 
 
 class Server(object):
@@ -75,7 +74,7 @@ class Server(object):
         class Child(object):
             pass
 
-        for i in range(4):
+        for i in range(16):
             c = Child()
             c.pipe_parent, c.pipe_child = multiprocessing.Pipe()
             c.ch = multiprocessing.Process(target=worker, args=(c.pipe_child,))
@@ -90,7 +89,7 @@ def echo(s, address):
     #print('New connection from %s:%s' % address)
     #s.sendall('Welcome to the echo server! Type quit to exit.\r\n')
     #http_read(s)
-    child = server.children[random.randint(0, 3)]
+    child = server.children[random.randint(0, len(server.children)-1)]
     reduction.send_handle(child.pipe_parent, s.fileno(), child.ch.pid)
 
 
