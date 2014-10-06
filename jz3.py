@@ -28,7 +28,13 @@ import multiprocessing
 from multiprocessing import reduction
 
 
-def http_read(s):
+def open_db():
+    db_path = 'db'
+    MAP_SIZE = 1048576 * 400
+    return lmdb.open(db_path, map_size=MAP_SIZE)
+
+
+def http_read(s, env):
     while True:
         try:
             p = HttpStream(SocketReader(s))
@@ -48,20 +54,33 @@ def http_read(s):
                 'Content-Length: 0\n'
                 'Server: jz/0.1.0\n\r\n\r\n')
         except NoMoreData:
+            print("done")
             break
 
 
 def worker(conn):
-    time.sleep(.5)
+    env = open_db()
+    #time.sleep(.5)
     conn.poll(None)
-    s = socket.fromfd(reduction.recv_handle(conn), socket.AF_INET, socket.SOCK_STREAM)
-    http_read(s)
+    while True:
+        s = socket.fromfd(reduction.recv_handle(conn), socket.AF_INET, socket.SOCK_STREAM)
+        s.setblocking(1)
+        http_read(s, env)
 
 
 class Server(object):
     def __init__(self):
-        self.parent, child = multiprocessing.Pipe()
-        self.ch = multiprocessing.Process(target=worker, args=(child,))
+        self.children = []
+
+        class Child(object):
+            pass
+
+        for i in range(4):
+            c = Child()
+            c.pipe_parent, c.pipe_child = multiprocessing.Pipe()
+            c.ch = multiprocessing.Process(target=worker, args=(c.pipe_child,))
+            c.ch.start()
+            self.children.append(c)
 
 
 server = Server()
@@ -70,15 +89,12 @@ server = Server()
 def echo(s, address):
     #print('New connection from %s:%s' % address)
     #s.sendall('Welcome to the echo server! Type quit to exit.\r\n')
-    http_read(s)
-    reduction.send_handle(server.parent, s.fileno(), server.ch.pid)
+    #http_read(s)
+    child = server.children[random.randint(0, 3)]
+    reduction.send_handle(child.pipe_parent, s.fileno(), child.ch.pid)
 
 
 if __name__ == '__main__':
-
-    db_path = 'db'
-    MAP_SIZE = 1048576 * 400
-    env = lmdb.open(db_path, map_size=MAP_SIZE)
-
+    env = open_db()
     s = StreamServer(('0.0.0.0', 8888), echo)
     s.serve_forever()
