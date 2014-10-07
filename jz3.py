@@ -34,25 +34,52 @@ def open_db():
     return lmdb.open(db_path, map_size=MAP_SIZE)
 
 
+
+query_plan
+
+
+def http_get(s, env, p):
+    body = p.body_file(binary=True).read()
+
+    print(body)
+
+    #with env.begin(write=True, buffers=True) as txn:
+    #    txn.put(key, )
+
+    s.sendall(
+        'HTTP/1.1 200 OK\n'
+        'Cache-Control: no-cache\n'
+        'Content-Language: en-us\n'
+        'Content-Type: application/json\n'
+        'Content-Length: 0\n'
+        'Server: jz/0.1.0\n\r\n\r\n')
+
+
+def http_post(s, env, p):
+    key = random.getrandbits(64)
+    key = struct.pack('L', key)
+
+    with env.begin(write=True, buffers=True) as txn:
+        txn.put(key, p.body_file(binary=True).read())
+
+    s.sendall(
+        'HTTP/1.1 200 OK\n'
+        'Cache-Control: no-cache\n'
+        'Content-Language: en-us\n'
+        'Content-Type: application/json\n'
+        'Content-Length: 0\n'
+        'Server: jz/0.1.0\n\r\n\r\n')
+
+
 def http_request(s, env):
     while True:
         try:
             p = HttpStream(SocketReader(s))
             p.headers()
-
-            key = random.getrandbits(64)
-            key = struct.pack('L', key)
-
-            with env.begin(write=True, buffers=True) as txn:
-                txn.put(key, p.body_file(binary=True).read())
-
-            s.sendall(
-                'HTTP/1.1 200 OK\n'
-                'Cache-Control: no-cache\n'
-                'Content-Language: en-us\n'
-                'Content-Type: application/json\n'
-                'Content-Length: 0\n'
-                'Server: jz/0.1.0\n\r\n\r\n')
+            if 'GET' == p.method():
+                http_get(s, env, p)
+            elif 'POST' == p.method():
+                http_post(s, env, p)
         except NoMoreData:
             break
 
@@ -64,6 +91,7 @@ def worker(conn):
     while True:
         s = socket.fromfd(reduction.recv_handle(conn), socket.AF_INET, socket.SOCK_STREAM)
         s.setblocking(1)
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
         http_request(s, env)
 
 
@@ -74,7 +102,7 @@ class Server(object):
         class Child(object):
             pass
 
-        for i in range(16):
+        for i in range(2):
             c = Child()
             c.pipe_parent, c.pipe_child = multiprocessing.Pipe()
             c.ch = multiprocessing.Process(target=worker, args=(c.pipe_child,))
