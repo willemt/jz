@@ -28,6 +28,9 @@ import multiprocessing
 from multiprocessing import reduction
 
 
+from queryplan import QueryPlan
+
+
 def open_db():
     db_path = 'db'
     MAP_SIZE = 1048576 * 400
@@ -35,13 +38,16 @@ def open_db():
 
 
 
-query_plan
-
-
 def http_get(s, env, p):
     body = p.body_file(binary=True).read()
 
-    print(body)
+    print("get")
+
+    for op in QueryPlan(body).ops():
+        print("op")
+        print(op.column)
+        print(op.target)
+
 
     #with env.begin(write=True, buffers=True) as txn:
     #    txn.put(key, )
