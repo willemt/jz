@@ -49,7 +49,6 @@ def get_operator(name, param_types):
     return None
 
 
-
 class ColOp(object):
     def __init__(self, *args):
         self.args = [casttype(arg, type) for arg, type in zip(args, self.types)]
@@ -88,37 +87,3 @@ class LtColOp2(ColOp):
 
     def run(self, row):
         return self.args[0] > row[self.args[1]]
-
-
-@operators.add('sum')
-class SumOp(ColOp):
-    types = [ColumnType]
-
-    def init(self, value):
-        return value
-
-    def accum(self, current, value):
-        return current + value
-
-
-@operators.add('unique')
-class UniqueOp(ColOp):
-    def __init__(self, *args, **kwargs):
-        super(UniqueOp, self).__init__(*args, **kwargs)
-        self.keys = {}
-
-    def run(self, rows):
-        for r in rows:
-            self.keys[r] = True
-        return len(self.keys)
-
-
-@operators.add('count')
-class CountOp(ColOp):
-    types = [ColumnType]
-
-    def init(self, value):
-        return 1
-
-    def accum(self, current, value):
-        return current + 1

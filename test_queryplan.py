@@ -64,108 +64,40 @@ def test_select_with_two_clauses_two_columns():
     assert results == [{'j': 4, 'k': 3}, {'j': 6, 'k': 3}, {'j': 10, 'k': 3}]
 
 
-def test_sum():
-    db = Storage()
-    db.contents = [
-        {'k': 3},
-        {'k': 3},
-        {'k': 10},
-        {'k': 3},
-        {'k': 20},
-        {'k': 20},
-        ]
-    query = 'SELECT sum(k)'
-    qp = QueryPlan(query)
-    results = qp.build(db)
-    qp.run(db)
-    assert results == []
+#def test_sum_with_where_clause():
+#    db = Storage()
+#    db.contents = [
+#        {'j': 'a', 'k': 3},
+#        {'j': 'a', 'k': 3},
+#        {'j': 'b', 'k': 10},
+#        {'j': 'a', 'k': 3},
+#        {'j': 'c', 'k': 20},
+#        {'j': 'b', 'k': 20},
+#        ]
+#    query = 'SELECT sum(k) WHERE 5 < k'
+#    qp = QueryPlan(query)
+#    results = qp.build(db)
+#    qp.run(db)
+#    assert results == []
 
-
-def test_sum_with_where_clause():
-    db = Storage()
-    db.contents = [
-        {'j': 'a', 'k': 3},
-        {'j': 'a', 'k': 3},
-        {'j': 'b', 'k': 10},
-        {'j': 'a', 'k': 3},
-        {'j': 'c', 'k': 20},
-        {'j': 'b', 'k': 20},
-        ]
-    query = 'SELECT sum(k) WHERE 5 < k'
-    qp = QueryPlan(query)
-    results = qp.build(db)
-    qp.run(db)
-    assert results == []
-
-
-
-
-def test_groupby():
-    db = Storage()
-    db.contents = [
-        {'letter': 'a', 'k': 3},
-        {'letter': 'a', 'k': 3},
-        {'letter': 'b', 'k': 10},
-        {'letter': 'a', 'k': 3},
-        {'letter': 'c', 'k': 20},
-        {'letter': 'b', 'k': 20},
-        ]
-    query = 'SELECT sum(k) GROUP BY letter'
-    qp = QueryPlan(query)
-    results = qp.build(db)
-    qp.run(db)
-    assert results == []
-
-
-def test_groupby_multiple():
-    db = Storage()
-    db.contents = [
-        {'number': 1, 'letter': 'a', 'k': 3},
-        {'number': 2, 'letter': 'a', 'k': 3},
-        {'number': 1, 'letter': 'b', 'k': 10},
-        {'number': 1, 'letter': 'b', 'k': 1},
-        {'number': 2, 'letter': 'a', 'k': 3},
-        {'number': 1, 'letter': 'c', 'k': 20},
-        {'number': 2, 'letter': 'b', 'k': 20},
-        ]
+#def test_groupby_multiple():
+##    db = Storage()
+#    db.contents = [
+#        {'number': 1, 'letter': 'a', 'k': 3},
+#        {'number': 2, 'letter': 'a', 'k': 3},
+#        {'number': 1, 'letter': 'b', 'k': 10},
+#        {'number': 1, 'letter': 'b', 'k': 1},
+#        {'number': 2, 'letter': 'a', 'k': 3},
+#        {'number': 1, 'letter': 'c', 'k': 20},
+#        {'number': 2, 'letter': 'b', 'k': 20},
+#        ]
 #    query = '{"select": [["sum", "k"], ["count", "k"]], '\
 #            ' "groupby": ["letter", "number"]}'
-
-    query = '{"select": [["sum", "k"], ["count", "k"]], '\
-            ' "groupby": ["letter", "number"]}'
-    print(query)
-    qp = QueryPlan(query)
-    qp.build(db)
-    qp.run(db)
-    assert 1 == 0
-
-
-def test_groupby_multiple2():
-    db = Storage()
-    db.contents = [
-        {'type': 'test', 'number': 1, 'letter': 'a', 'k': 3},
-        {'type': 'test', 'number': 2, 'letter': 'a', 'k': 4},
-        {'type': 'post', 'number': 2, 'letter': 'a', 'k': 3},
-        {'type': 'test', 'number': 1, 'letter': 'b', 'k': 10},
-        {'type': 'test', 'number': 1, 'letter': 'b', 'k': 1},
-        {'type': 'test', 'number': 2, 'letter': 'a', 'k': 3},
-        {'type': 'test', 'number': 1, 'letter': 'c', 'k': 20},
-        {'type': 'test', 'number': 2, 'letter': 'b', 'k': 20},
-        ]
-#    query = '{"select": [["sum", "k"], ["count", "k"]], '\
-#            ' "groupby": ["type", "letter", "number"]}'
-    query = 'SELECT sum(k), count(k) GROUP BY type, letter, number'
-    print(query)
-    qp = QueryPlan(query)
-    qp.build(db)
-    qp.run(db)
-    assert 1 == 0
-
+#    print(query)
+#    qp = QueryPlan(query)
+#    qp.build(db)
+#    qp.run(db)
+#    assert 1 == 0
 
 if __name__ == '__main__':
-    #test_simple_select()
-    test_sum()
-    #test_sum_with_where_clause()
-    #test_groupby()
-    #test_groupby_multiple()
-    #test_groupby_multiple2()
+    test_simple_select()
