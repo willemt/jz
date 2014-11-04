@@ -143,6 +143,6 @@ if __name__ == '__main__':
     #test_ands2()
     test_ands2()
     #test_sum()
-    test_groupby()
+    #test_groupby()
     #test_groupby_multiple()
     #test_groupby_multiple2()
