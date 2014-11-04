@@ -71,14 +71,31 @@ class MergeJoin(Op):
                 b = bp.next()
 
 
+#class Aggregate(Op):
+#    def __init__(self, source, column, op):
+#        self.source = source
+#        self.column = column
+#        self.op = op
+#
+#    def produce(self):
+#        yield self.op.run([row[self.column] for row in self.source.produce()])
+
+
 class Aggregate(Op):
-    def __init__(self, source, column, op):
+    def __init__(self, source, columns, ops):
         self.source = source
         self.column = column
         self.op = op
 
     def produce(self):
-        yield self.op.run([row[self.column] for row in self.source.produce()])
+        new = {}
+        for row in self.source.produce():
+            for op in ops:
+                if op.args[0] not in new:
+                    new[op.column] = op.init(row[op.column])
+                else:
+                    new[op.column] = op.accum(new[op.column], row[op.column])
+        yield new
 
 
 class HashGroupbyAggregate(Op):

@@ -34,7 +34,7 @@ class QueryPlan(object):
                 op_class = operators.get_operator(clause[1], types)
                 if op_class:
                     op = op_class(clause[0], clause[2])
-                    sops.append(op)
+                    wops.append(op)
                     try:
                         _build_where(clause[3])
                     except IndexError:
@@ -43,20 +43,18 @@ class QueryPlan(object):
                     print("ERROR: Unknown op: {0} ({1})".format(clause[1], types))
 
         def _build_select(node):
+            import pudb; pudb.set_trace()
+
             if not node:
                 return
             for clause in node:
-                types = operators.determine_types(clause[0], clause[2])
-                op_class = operators.get_operator(clause[1], types)
+                types = operators.determine_types(*clause[1])
+                op_class = operators.get_operator(clause[0], types)
                 if op_class:
-                    op = op_class(clause[0], clause[2])
+                    op = op_class(*clause[1])
                     sops.append(op)
-                    try:
-                        _build_select(clause[3])
-                    except IndexError:
-                        pass
                 else:
-                    print("ERROR: Unknown op: {0} ({1})".format(clause[1], types))
+                    print("ERROR: Unknown op: {0} ({1})".format(clause[0], types))
 
         def _build_groupby(node):
             if not node:
@@ -82,8 +80,6 @@ class QueryPlan(object):
         sources = {}
         for col, ops in columns(sops+wops).items():
             sources[col] = iterator.Scan(db, col)
-
-        print 'sourcesx', sources
 
         for col, ops in columns(wops).items():
             print("column {0}".format(col))
@@ -112,13 +108,13 @@ class QueryPlan(object):
                 print(i)
         else:
             if 1 < len(sources):
-                m = iterator.MergeJoin(sources.values())
+                m = iterator.MergeJoin(sources.values()[0].values())
                 for i in m.produce():
                     print i
-            else:
-                print "RESULTS"
-                for i in sources.values()[0].produce():
-                    print i
+
+        sources = iterator.Aggregate(source, )
+
+        return list(sources.values()[0].produce())
 
     def run(self, db):
         pass

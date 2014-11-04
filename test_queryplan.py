@@ -18,8 +18,7 @@ class Storage(object):
         for i in self.contents:
             yield i
 
-
-def test_ands2():
+def test_simple_select():
     db = Storage()
     db.contents = [
         {'j': 4},
@@ -28,13 +27,28 @@ def test_ands2():
         {'j': 10},
         {'j': 20},
         ]
-    #query = '{"where": [["gt", "j", 5], ["lt", "j", 10]]}'
+    query = 'WHERE 6 < j'
+    qp = QueryPlan(query)
+    result = qp.build(db)
+    assert result == [{'j': 9}, {'j': 10}, {'j': 20}]
+
+def test_select_with_two_clauses():
+    db = Storage()
+    db.contents = [
+        {'j': 4},
+        {'j': 6},
+        {'j': 9},
+        {'j': 10},
+        {'j': 20},
+        ]
     query = 'WHERE 5 < j AND j < 10'
     qp = QueryPlan(query)
-    qp.build(db)
+    result = qp.build(db)
     qp.run(db)
+    assert result == [{'j': 6}, {'j': 9}]
 
-def test_ands3():
+
+def test_select_with_two_clauses_two_columns():
     db = Storage()
     db.contents = [
         {'j': 4, 'k': 3},
@@ -43,15 +57,31 @@ def test_ands3():
         {'j': 10, 'k': 3},
         {'j': 20, 'k': 20},
         ]
-    query = '{"where": [["gt", "j", 5], ["lt", "k", 10]]}'
-    print(query)
+    query = 'WHERE 5 < j AND k < 10'
     qp = QueryPlan(query)
-    qp.build(db)
+    results = qp.build(db)
     qp.run(db)
-    assert 1 == 0
+    assert results == [{'j': 4, 'k': 3}, {'j': 6, 'k': 3}, {'j': 10, 'k': 3}]
 
 
 def test_sum():
+    db = Storage()
+    db.contents = [
+        {'k': 3},
+        {'k': 3},
+        {'k': 10},
+        {'k': 3},
+        {'k': 20},
+        {'k': 20},
+        ]
+    query = 'SELECT sum(k)'
+    qp = QueryPlan(query)
+    results = qp.build(db)
+    qp.run(db)
+    assert results == []
+
+
+def test_sum_with_where_clause():
     db = Storage()
     db.contents = [
         {'j': 'a', 'k': 3},
@@ -61,17 +91,13 @@ def test_sum():
         {'j': 'c', 'k': 20},
         {'j': 'b', 'k': 20},
         ]
-    #query = '{"select": [["unique", "j"], ["sum", "k"]]}'
-    query = '{"select": [["count", "j"], ["unique", "j"], ["sum", "k"]],' \
-            ' "where": [["gt", "k", 5]]}'
-#    query = 'SELECT count(j), unique(j), sum(k) ' \
-#            'WHERE gt(k, 5) ' \
-#            'GROUP BY k'
-    print(query)
+    query = 'SELECT sum(k) WHERE 5 < k'
     qp = QueryPlan(query)
-    qp.build(db)
+    results = qp.build(db)
     qp.run(db)
-    assert 1 == 0
+    assert results == []
+
+
 
 
 def test_groupby():
@@ -84,14 +110,11 @@ def test_groupby():
         {'letter': 'c', 'k': 20},
         {'letter': 'b', 'k': 20},
         ]
-#    query = '{"select": [["sum", "k"]], '\
-#            ' "groupby": ["letter"]}'
     query = 'SELECT sum(k) GROUP BY letter'
-    print(query)
     qp = QueryPlan(query)
-    qp.build(db)
+    results = qp.build(db)
     qp.run(db)
-    assert 1 == 0
+    assert results == []
 
 
 def test_groupby_multiple():
@@ -140,9 +163,9 @@ def test_groupby_multiple2():
 
 
 if __name__ == '__main__':
-    #test_ands2()
-    test_ands2()
-    #test_sum()
+    #test_simple_select()
+    test_sum()
+    #test_sum_with_where_clause()
     #test_groupby()
     #test_groupby_multiple()
     #test_groupby_multiple2()
