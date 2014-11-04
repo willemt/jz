@@ -18,9 +18,7 @@ class QueryPlan(object):
         print(ast)
         print(json.dumps(ast, indent=2))
 
-        sops = []
         wops = []
-        gops = []
 
         def _build_where(node):
             if not node:
@@ -42,31 +40,8 @@ class QueryPlan(object):
                 else:
                     print("ERROR: Unknown op: {0} ({1})".format(clause[1], types))
 
-        def _build_select(node):
-            import pudb; pudb.set_trace()
-
-            if not node:
-                return
-            for clause in node:
-                types = operators.determine_types(*clause[1])
-                op_class = operators.get_operator(clause[0], types)
-                if op_class:
-                    op = op_class(*clause[1])
-                    sops.append(op)
-                else:
-                    print("ERROR: Unknown op: {0} ({1})".format(clause[0], types))
-
-        def _build_groupby(node):
-            if not node:
-                return
-            for clause in node:
-                gops.append(clause)
-
         _build_where(ast['where'])
-        _build_select(ast['select'])
-        _build_groupby(ast['groupby'])
 
-        print('sops', sops)
         print('wops', wops)
 
         def columns(ops):
@@ -78,7 +53,7 @@ class QueryPlan(object):
             return by_column
 
         sources = {}
-        for col, ops in columns(sops+wops).items():
+        for col, ops in columns(wops).items():
             sources[col] = iterator.Scan(db, col)
 
         for col, ops in columns(wops).items():
@@ -90,29 +65,11 @@ class QueryPlan(object):
 
         print("Sources {0}".format(sources))
 
-        # Final merge
-#        if 1 < len(sources):
-            #iterator.Sort(prev, col))
-#            sources = {'a': m}
-            #for i in m.produce():
-            #    print i
 
-        if gops:
-            m = sources.values()[0]
-            ops2 = []
-            for col2, ops1 in columns(sops).items():
-                for op in ops1:
-                    ops2.append(op)
-            j = iterator.HashGroupbyAggregate(m, gops, ops2)
-            for i in j.produce():
-                print(i)
-        else:
-            if 1 < len(sources):
-                m = iterator.MergeJoin(sources.values()[0].values())
-                for i in m.produce():
-                    print i
-
-        sources = iterator.Aggregate(source, )
+        if 1 < len(sources):
+            m = iterator.MergeJoin(sources.values()[0].values())
+            for i in m.produce():
+                print i
 
         return list(sources.values()[0].produce())
 
