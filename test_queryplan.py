@@ -18,6 +18,7 @@ class Storage(object):
         for i in self.contents:
             yield i
 
+
 def test_simple_select():
     db = Storage()
     db.contents = [
@@ -32,6 +33,7 @@ def test_simple_select():
     result = qp.build(db)
     assert result == [{'j': 9}, {'j': 10}, {'j': 20}]
 
+
 def test_select_with_two_clauses():
     db = Storage()
     db.contents = [
@@ -45,7 +47,7 @@ def test_select_with_two_clauses():
     qp = QueryPlan(query)
     result = qp.build(db)
     qp.run(db)
-    assert result == [{'j': 6}, {'j': 9}]
+    assert sorted(result) == [{'j': 6}, {'j': 9}]
 
 
 def test_select_with_two_clauses_two_columns():
@@ -61,7 +63,10 @@ def test_select_with_two_clauses_two_columns():
     qp = QueryPlan(query)
     results = qp.build(db)
     qp.run(db)
-    assert results == [{'j': 4, 'k': 3}, {'j': 6, 'k': 3}, {'j': 10, 'k': 3}]
+    assert sorted(results) == [
+        {'k': 3, 'j': 6},
+        {'k': 3, 'j': 10},
+        ]
 
 
 #def test_sum_with_where_clause():
@@ -101,3 +106,5 @@ def test_select_with_two_clauses_two_columns():
 
 if __name__ == '__main__':
     test_simple_select()
+    test_select_with_two_clauses()
+    test_select_with_two_clauses_two_columns()

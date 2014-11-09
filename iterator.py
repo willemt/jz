@@ -31,18 +31,17 @@ class Filter(Op):
                 yield row
 
 
-class Sort(Op):
-    def __init__(self, source, column):
+class IdSort(Op):
+    def __init__(self, source):
         self.source = source
-        self.column = column
         self.heap = []
 
     def produce(self):
         for row in self.source.produce():
-            heappush(self.heap, row)
+            heappush(self.heap, (id(row), row))
 
         for i in range(len(self.heap)):
-            yield heappop(self.heap)
+            yield heappop(self.heap)[1]
 
 
 class HashJoin(Op):
@@ -51,8 +50,8 @@ class HashJoin(Op):
 
 
 class MergeJoin(Op):
-    def __init__(self, sources):
-        self.sources = sources
+    def __init__(self, a, b):
+        self.sources = (a, b)
 
     def produce(self):
         ap = self.sources[0].produce()
@@ -60,7 +59,6 @@ class MergeJoin(Op):
         a = ap.next()
         b = bp.next()
         while a and b:
-            #print(a, b)
             if id(a) < id(b):
                 a = ap.next()
             elif id(a) > id(b):
