@@ -1,4 +1,6 @@
 from collections import defaultdict
+import ctypes
+import struct
 
 
 class ColumnType(object):
@@ -7,7 +9,7 @@ class ColumnType(object):
 
 def casttype(arg, atype):
     if atype == int:
-        return int(arg)
+        return struct.pack('L', int(arg))
     return arg
 
 
@@ -62,7 +64,7 @@ class GtColOp(ColOp):
     types = [ColumnType, int]
 
     def run(self, row):
-        return row[self.args[0]] < self.args[1]
+        return row[0] < self.args[1]
 
 
 @operators.add('<')
@@ -70,7 +72,7 @@ class GtColOp2(ColOp):
     types = [int, ColumnType]
 
     def run(self, row):
-        return self.args[0] < row[self.args[1]]
+        return self.args[0] < row[0]
 
 
 @operators.add('>')
@@ -78,7 +80,7 @@ class LtColOp(ColOp):
     types = [ColumnType, int]
 
     def run(self, row):
-        return row[self.args[0]] > self.args[1]
+        return row[0] > self.args[1]
 
 
 @operators.add('>')
@@ -86,4 +88,20 @@ class LtColOp2(ColOp):
     types = [int, ColumnType]
 
     def run(self, row):
-        return self.args[0] > row[self.args[1]]
+        return self.args[0] > row[0]
+
+
+@operators.add('=')
+class EqColOp(ColOp):
+    types = [ColumnType, int]
+
+    def run(self, row):
+        return self.args[1] == row[0]
+
+
+@operators.add('=')
+class EqColOp2(ColOp):
+    types = [int, ColumnType]
+
+    def run(self, row):
+        return self.args[0] == row[0]

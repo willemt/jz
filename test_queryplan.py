@@ -10,14 +10,6 @@ from queryplan import QueryPlan
 #    assert 1 == len(qp.ops())
 
 
-class Storage(object):
-    def __init__(self):
-        self.contents = []
-
-    def produce(self):
-        for i in self.contents:
-            yield i
-
 
 def test_simple_select():
     db = Storage()

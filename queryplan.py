@@ -1,4 +1,3 @@
-
 import simplejson as json
 from collections import defaultdict
 
@@ -7,11 +6,17 @@ import operators
 import sqlparse
 
 
-def mux(sources):
-    m = iterator.MergeJoin(iterator.IdSort(sources[0]),
-                           iterator.IdSort(sources[1]))
-    for it in sources[2:]:
-        m = iterator.MergeJoin(m, iterator.IdSort(it))
+def mux(sources, join_type='sort-merge'):
+    """ Join multiple streams into one using join(s) """
+    if join_type == 'sort-merge':
+        m = iterator.MergeJoin(iterator.IdSort(sources[0]),
+                               iterator.IdSort(sources[1]))
+        for it in sources[2:]:
+            m = iterator.MergeJoin(m, iterator.IdSort(it))
+    else:
+        m = iterator.HashJoin(sources[0], sources[1])
+        for it in sources[2:]:
+            m = iterator.HashJoin(m, it)
     return m
 
 
@@ -36,6 +41,7 @@ def _build_where(node):
     for clause in node:
         types = operators.determine_types(clause[0], clause[2])
         op_class = operators.get_operator(clause[1], types)
+
         if op_class:
             op = op_class(clause[0], clause[2])
             wops.append(op)
@@ -53,17 +59,19 @@ class QueryPlan(object):
         self.raw = raw
 
     def build(self, db):
-
         parser = sqlparse.sqlParser()
         ast = parser.parse(self.raw, rule_name='query')
-        #print(ast)
-        #print(json.dumps(ast, indent=2))
 
-        wops =  _build_where(ast['where'])
+        # print(ast)
+        # print(json.dumps(ast, indent=2))
+
+        wops = _build_where(ast['where'])
 
         sources = {}
 
         # Get scans
+        # TODO: need to choose SARAGBLEs here
+        # https://en.wikipedia.org/wiki/Sargable
         for col, ops in columns(wops).items():
             sources[col] = iterator.Scan(db, col)
 
@@ -76,7 +84,7 @@ class QueryPlan(object):
 
         # Multiplex
         if 1 < len(sources):
-            source = mux(sources.values())
+            source = mux(sources.values(), join_type='hash')
             return list(source.produce())
         else:
             return list(sources.values()[0].produce())
