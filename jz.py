@@ -1,16 +1,27 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-from gevent.server import StreamServer
+"""jz, the JSON database.
 
+Usage:
+  jz.py [-p <port_num> -w <count> -r]
+  jz.py (-h | --help)
+  jz.py --version
+
+Options:
+  -h --help                  Show this screen
+  --version                  Show version
+  -w, --workers <count>      Number of workers [default: 4]
+  -p, --port <port_num>      Port to listen on [default: 8888]
+  -r, --autoreload           Autoreload when source code changes
+
+"""
+from __future__ import print_function
+from docopt import docopt
+from gevent.server import StreamServer
 import os
 import random
-import lmdb
-import struct
 import socket
-import simplejson as json
-
-# try to import C parser then fallback in pure python parser.
+from multiprocessing import reduction, Pipe, Process
 try:
     from http_parser.parser import HttpParser
 except ImportError:
@@ -18,16 +29,11 @@ except ImportError:
 from http_parser.http import HttpStream, NoMoreData
 from http_parser.reader import SocketReader
 
-from multiprocessing import reduction, Pipe, Process
-
 from queryplan import QueryPlan
 import storage
-
 import monitor
 
-
-monitor.start(interval=1.0)
-monitor.track(os.path.join(os.path.dirname(__file__), 'site.cf'))
+VERSION = "0.0.1"
 
 
 class Request(object):
@@ -102,8 +108,9 @@ class Server(object):
         self.workers = []
         self.storage = storage.Storage()
 
+    def run(self):
         # Spawn workers
-        for i in range(4):
+        for i in range(self.num_workers):
             w = Worker(self)
             w.pipe_parent, w.pipe_child = Pipe()
             w.ch = Process(target=Worker.entry, args=(w.pipe_child, w))
@@ -120,5 +127,14 @@ def entry(s, address):
 
 
 if __name__ == '__main__':
-    s = StreamServer(('0.0.0.0', 8888), entry)
+    args = docopt(__doc__, version=VERSION)
+    print(args)
+
+    if args['--autoreload']:
+        monitor.start(interval=1.0)
+        monitor.track(os.path.join(os.path.dirname(__file__), 'site.cf'))
+
+    server.num_workers = int(args['--workers'])
+    server.run()
+    s = StreamServer(('0.0.0.0', int(args['--port'])), entry)
     s.serve_forever()
