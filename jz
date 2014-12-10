@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+err=143
+while test "$err" -eq 143 ; do
+    python jz.py -r
+    err="$?"
+done

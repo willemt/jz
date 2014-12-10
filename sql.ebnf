@@ -1,0 +1,31 @@
+query = select:[select] where:[where] groupby:[groupby]$;
+
+arglist = '(' @+:arg {',' @+:arg}* ')' ;
+function = identifier arglist;
+
+number = ?/[0-9]+/?;
+
+identifier = ?/[a-z]+/?;
+
+arg = identifier | number;
+
+op = '<' | '>' | '=' | '<=' | '>=';
+
+expression =
+    function |
+    identifier [op arg] |
+    [arg op] identifier;
+
+select = 'SELECT' @:select_contents;
+select_contents = @+:expression {',' @+:expression}* ;
+
+bool = 'AND' | 'OR';
+
+test =
+    '(' @:expression {@:(bool test)}* ')' {@:(bool test)}* |
+    @:expression {@:(bool test)}*;
+
+where = 'WHERE' @+:test ;
+
+groupby = 'GROUP BY' @:groupby_clause;
+groupby_clause = @+:expression {',' @+:expression}* ;
