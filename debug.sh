@@ -1,1 +1,1 @@
-python -m pudb.run jz.py -d
+python -m pudb.run jz/jz.py -d

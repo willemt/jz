@@ -2,6 +2,6 @@
 
 err=143
 while test "$err" -eq 143 ; do
-    python jz.py -r
+    python jz/jz.py -r
     err="$?"
 done
