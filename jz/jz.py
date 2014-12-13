@@ -19,7 +19,6 @@ Options:
 from __future__ import print_function
 from docopt import docopt
 import os
-import sys
 import random
 import socket
 import traceback
@@ -34,44 +33,11 @@ from http_parser.reader import SocketReader
 from queryplan import QueryPlan
 import storage
 import monitor
+import http
+import resources
 
 
 VERSION = "0.0.1"
-
-
-class Request(object):
-    def __init__(self, socket):
-        self.socket = socket
-
-    @property
-    def method(self):
-        return self.parser.method()
-
-    @property
-    def body(self):
-        return self.parser.body_file(binary=True).read()
-
-    def get_environ(self):
-        return {
-            'ACTUAL_SERVER_PROTOCOL': 'HTTP/1.0',
-            'PATH_INFO': self.parser.path(),
-            'QUERY_STRING': self.parser.query_string(),
-            'REMOTE_ADDR': '',
-            'REMOTE_PORT': '',
-            'REQUEST_METHOD': self.method,
-            'REQUEST_URI': '',
-            'SCRIPT_NAME': '',
-            'SERVER_NAME': '',
-            'SERVER_PROTOCOL': '',
-            'SERVER_SOFTWARE': '',
-            'wsgi.errors': sys.stderr,
-            'wsgi.input': self.parser.body_file(binary=True),
-            'wsgi.multiprocess': False,
-            'wsgi.multithread': True,
-            'wsgi.run_once': False,
-            'wsgi.url_scheme': '',
-            'wsgi.version': (1, 0),
-        }
 
 
 class Worker(object):
@@ -89,17 +55,8 @@ class Worker(object):
             s = socket.fromfd(reduction.recv_handle(self.conn), socket.AF_INET, socket.SOCK_STREAM)
             s.setblocking(1)
             s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
-            r = Request(socket=s)
+            r = http.Request(socket=s)
             self.http_request(r)
-
-    def data_response(self, r, data):
-        r.socket.sendall(
-            'HTTP/1.1 200 OK\n'
-            'Content-Language: en-us\n'
-            'Content-Type: application/json\n'
-            'Content-Length: {len}\n'
-            'Server: jz/0.1.0\n\r\n\r\n'
-            '{body}\n'.format(len=len(data) + 2, body=data))
 
     def http_request(self, r):
         while True:
@@ -113,28 +70,34 @@ class Worker(object):
             except NoMoreData:
                 break
             except Exception as e:
-                self.data_response(r, unicode(e))
+                r.socket.sendall(http.Response(unicode(e)).text)
                 print(traceback.format_exc())
 
     def get(self, r):
+        path = r.parser.path()
+        if '/column/' == path:
+            response = resources.IndexResource(request=r).handle('list')
+            r.socket.sendall(response.text)
+            return
+
         body = r.parser.body_file(binary=True).read()
         qp = QueryPlan(body)
         result = qp.build(self.server.storage)
         body = '[' + u','.join([unicode(self.server.storage.get(row[1]))
                                 for row in result]) + ']'
-        self.data_response(r, body)
+        r.socket.sendall(http.Response(body).text)
 
     def post(self, r):
         path = r.parser.path()
         if '/user/' == path:
             apikey = os.urandom(18).encode("hex")
-            self.data_response(r, apikey)
+            r.socket.sendall(http.Response(apikey).text)
         elif '/column/' == path:
             self.server.storage.create_column(r.parser.body_file(binary=True).read())
-            self.data_response(r, '')
+            r.socket.sendall(http.Response('').text)
         else:
             self.server.storage.put(r.parser.body_file(binary=True).read())
-            self.data_response(r, '')
+            r.socket.sendall(http.Response('').text)
 
 
 class Server(object):
@@ -158,7 +121,7 @@ server = Server()
 def entry(s, address):
     if 0 == len(server.workers):
         w = Worker(server)
-        w.http_request(Request(socket=s))
+        w.http_request(http.Request(socket=s))
     else:
         child = server.workers[random.randint(0, len(server.workers)-1)]
         reduction.send_handle(child.pipe_parent, s.fileno(), child.ch.pid)
