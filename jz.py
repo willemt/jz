@@ -3,7 +3,7 @@
 """jz, the JSON database.
 
 Usage:
-  jz.py [-p <port_num> -w <count> -r]
+  jz.py [-p <port_num> -w <count> -r -d]
   jz.py (-h | --help)
   jz.py --version
 
@@ -13,14 +13,16 @@ Options:
   -w, --workers <count>      Number of workers [default: 4]
   -p, --port <port_num>      Port to listen on [default: 8888]
   -r, --autoreload           Autoreload when source code changes
+  -d, --debug                Enable debugging
 
 """
 from __future__ import print_function
 from docopt import docopt
-from gevent.server import StreamServer
 import os
+import sys
 import random
 import socket
+import traceback
 from multiprocessing import reduction, Pipe, Process
 try:
     from http_parser.parser import HttpParser
@@ -33,11 +35,43 @@ from queryplan import QueryPlan
 import storage
 import monitor
 
+
 VERSION = "0.0.1"
 
 
 class Request(object):
-    pass
+    def __init__(self, socket):
+        self.socket = socket
+
+    @property
+    def method(self):
+        return self.parser.method()
+
+    @property
+    def body(self):
+        return self.parser.body_file(binary=True).read()
+
+    def get_environ(self):
+        return {
+            'ACTUAL_SERVER_PROTOCOL': 'HTTP/1.0',
+            'PATH_INFO': self.parser.path(),
+            'QUERY_STRING': self.parser.query_string(),
+            'REMOTE_ADDR': '',
+            'REMOTE_PORT': '',
+            'REQUEST_METHOD': self.method,
+            'REQUEST_URI': '',
+            'SCRIPT_NAME': '',
+            'SERVER_NAME': '',
+            'SERVER_PROTOCOL': '',
+            'SERVER_SOFTWARE': '',
+            'wsgi.errors': sys.stderr,
+            'wsgi.input': self.parser.body_file(binary=True),
+            'wsgi.multiprocess': False,
+            'wsgi.multithread': True,
+            'wsgi.run_once': False,
+            'wsgi.url_scheme': '',
+            'wsgi.version': (1, 0),
+        }
 
 
 class Worker(object):
@@ -55,8 +89,7 @@ class Worker(object):
             s = socket.fromfd(reduction.recv_handle(self.conn), socket.AF_INET, socket.SOCK_STREAM)
             s.setblocking(1)
             s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
-            r = Request()
-            r.socket = s
+            r = Request(socket=s)
             self.http_request(r)
 
     def data_response(self, r, data):
@@ -81,6 +114,7 @@ class Worker(object):
                 break
             except Exception as e:
                 self.data_response(r, unicode(e))
+                print(traceback.format_exc())
 
     def get(self, r):
         body = r.parser.body_file(binary=True).read()
@@ -122,13 +156,24 @@ server = Server()
 
 
 def entry(s, address):
-    child = server.workers[random.randint(0, len(server.workers)-1)]
-    reduction.send_handle(child.pipe_parent, s.fileno(), child.ch.pid)
+    if 0 == len(server.workers):
+        w = Worker(server)
+        w.http_request(Request(socket=s))
+    else:
+        child = server.workers[random.randint(0, len(server.workers)-1)]
+        reduction.send_handle(child.pipe_parent, s.fileno(), child.ch.pid)
 
 
 if __name__ == '__main__':
     args = docopt(__doc__, version=VERSION)
-    print(args)
+
+    if args['--debug']:
+        # gevent's monkey patch messes pudb up
+        from streamserver import StreamServer
+        # keep it single threaded
+        args['--workers'] = 0
+    else:
+        from gevent.server import StreamServer
 
     if args['--autoreload']:
         monitor.start(interval=1.0)
