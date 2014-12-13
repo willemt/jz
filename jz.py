@@ -28,6 +28,7 @@ except ImportError:
     from http_parser.pyparser import HttpParser
 from http_parser.http import HttpStream, NoMoreData
 from http_parser.reader import SocketReader
+from cherrypy.wsgiserver import HTTPRequest
 
 from queryplan import QueryPlan
 import storage
@@ -38,6 +39,14 @@ VERSION = "0.0.1"
 
 class Request(object):
     pass
+
+
+class ReplaySocket(object):
+    def __init__(self, sock):
+        self.sock = sock
+
+    def read(self, size):
+        self.sock.read(size)
 
 
 class Worker(object):
@@ -98,9 +107,43 @@ class Worker(object):
         elif '/column/' == path:
             self.server.storage.create_column(r.parser.body_file(binary=True).read())
             self.data_response(r, '')
+        elif '/test/' == path:
+            pass
+            
+            class FakeServer(object):
+                pass
+
+            class FakeConn(object):
+                def __init__(self, rfile, wfile):
+                    self.rfile = rfile
+                    self.wfile = wfile
+
+            server = FakeServer()
+            server.max_request_header_size = 100000
+            server.max_request_body_size = 100000
+            server.ssl_adapter = None
+            server.protocol = 'HTTP/1.1'
+            server.gateway = Gateway
+            conn = FakeConn(r.socket)
+            req = HTTPRequest(server, conn)
+            req.parse_request()
+
         else:
             self.server.storage.put(r.parser.body_file(binary=True).read())
             self.data_response(r, '')
+
+
+class Gateway(object):
+
+    """A base class to interface HTTPServer with other systems, such as WSGI.
+    """
+
+    def __init__(self, req):
+        self.req = req
+
+    def respond(self):
+        """Process the current request. Must be overridden in a subclass."""
+        raise NotImplemented
 
 
 class Server(object):
