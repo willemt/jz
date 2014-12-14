@@ -11,6 +11,7 @@ Goals:
 * GROUP BY CUBE support (pivot tables)
 * One big table (NoSQL)
 * SQL-like querying
+* Multi-tenancy
 
 Inspired by the following papers:
 
