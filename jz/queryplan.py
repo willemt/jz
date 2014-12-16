@@ -14,6 +14,8 @@ def mux(sources, join_type='sort-merge'):
         for it in sources[2:]:
             m = iterator.MergeJoin(m, iterator.IdSort(it))
     else:
+        # TODO: create a multi-hash join
+        #  we can reuse one hash table for multiple inputs
         m = iterator.HashJoin(sources[0], sources[1])
         for it in sources[2:]:
             m = iterator.HashJoin(m, it)
