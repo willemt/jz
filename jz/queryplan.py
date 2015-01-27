@@ -1,4 +1,3 @@
-import simplejson as json
 from collections import defaultdict
 
 import iterator
@@ -8,6 +7,7 @@ import sqlparse
 
 def mux(sources, join_type='sort-merge'):
     """ Join multiple streams into one using join(s) """
+
     if join_type == 'sort-merge':
         m = iterator.MergeJoin(iterator.IdSort(sources[0]),
                                iterator.IdSort(sources[1]))

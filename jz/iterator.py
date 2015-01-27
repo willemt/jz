@@ -8,15 +8,15 @@ class Op(object):
 
 
 class Scan(Op):
+    """
+    Pull tuples from storage
+    """
+
     def __init__(self, storage, column):
         self.storage = storage
         self.column = column
 
     def produce(self):
-        """
-        Pull tuple from storage
-        """
-
         for row in self.storage.column_scanner(self.column).produce():
             yield row
 
@@ -33,7 +33,9 @@ class Filter(Op):
 
 
 class IdSort(Op):
-    """ Sorts stream based off document ID """
+    """
+    Sorts stream based off document ID
+    """
 
     def __init__(self, source):
         self.source = source
@@ -54,6 +56,7 @@ class IdSort(Op):
 class HashJoin(Op):
     """
     Joins 2 streams into 1
+
     The join uses the document ID
     """
 
@@ -72,6 +75,7 @@ class HashJoin(Op):
 class MergeJoin(Op):
     """
     Joins 2 streams into 1
+
     The join uses the document ID
     Input must be sorted for the join to work.
     Output is sorted

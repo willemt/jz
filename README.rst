@@ -15,11 +15,12 @@ Goals:
 
 Inspired by the following papers:
 
-* Hellerstein etal, Online Aggregation
-* Jim Gray etal, Data Cube: A Relational Aggregation Operator Generalizing Group-By, Cross-Tab, and Sub-Totals
-* Neumann, Efficiently Compiling Efficient Query Plans for Modern Hardware
-* Krikellas, The case for holistic query evaluation
-* Bigtable: A Distributed Storage System for Structured Data
+* `Hellerstein etal, Online Aggregation <http://db.cs.berkeley.edu/cs286/papers/ola-sigmod1997.pdf>`_
+* `Neumann, Efficiently Compiling Efficient Query Plans for Modern Hardware <http://www.vldb.org/pvldb/vol4/p539-neumann.pdf>`_
+* `Krikellas, The case for holistic query evaluation <http://homepages.inf.ed.ac.uk/mc/Publications/krikellas_thesis.pdf>`_
+* `Bigtable: A Distributed Storage System for Structured Data <https://static.googleusercontent.com/media/research.google.com/en//archive/bigtable-osdi06.pdf>`_
+* `HyperLogLog in Practice: Algorithmic Engineering of a State of The Art Cardinality Estimation Algorithm <http://static.googleusercontent.com/media/research.google.com/en//pubs/archive/40671.pdf>`_
+
 
 How do I use this?
 ==================
