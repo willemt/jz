@@ -1,3 +1,8 @@
 gevent
 docopt
 http_parser
+pep3143daemon
+grako
+simplejson
+lmdb
+psutil
