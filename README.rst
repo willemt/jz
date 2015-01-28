@@ -31,7 +31,13 @@ Start server
 ------------
 .. code-block:: bash
 
-   python jz/jz.py &
+   sudo ./jz/jz.py -z
+
+.. code-block:: bash
+
+   pidfile is: /var/run/jz.pid
+   daemonizing...
+
 
 Add columns
 -----------
@@ -107,6 +113,19 @@ GET JSON documents using multiple clause JSON query
      "x": "70", "y": "90"
    }
    ]
+
+
+Shutdown server
+---------------
+.. code-block:: bash
+
+   sudo cat /var/run/jz.pid | sudo xargs kill
+   echo Done!
+
+.. code-block:: bash
+
+   Done!
+
 
 Security
 ========
