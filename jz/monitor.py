@@ -16,6 +16,7 @@ _running = False
 _queue = Queue.Queue()
 _lock = threading.Lock()
 
+
 def _restart(path):
     _queue.put(True)
     prefix = 'monitor (pid=%d):' % os.getpid()
@@ -27,6 +28,7 @@ def _restart(path):
     for child in parent.get_children(recursive=True):
         os.kill(child.pid, signal.SIGTERM)
     os.kill(os.getpid(), signal.SIGTERM)
+
 
 def _modified(path):
     try:
@@ -60,6 +62,7 @@ def _modified(path):
 
     return False
 
+
 def _monitor():
     while 1:
         # Check modification times on all files in sys.modules.
@@ -89,8 +92,10 @@ def _monitor():
         except:
             pass
 
+
 _thread = threading.Thread(target=_monitor)
 _thread.setDaemon(True)
+
 
 def _exiting():
     try:
@@ -99,11 +104,14 @@ def _exiting():
         pass
     _thread.join()
 
+
 atexit.register(_exiting)
 
+
 def track(path):
-    if not path in _files:
+    if path not in _files:
         _files.append(path)
+
 
 def start(interval=1.0):
     global _interval

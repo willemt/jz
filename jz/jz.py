@@ -1,30 +1,33 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """jz, the JSON database.
 
 Usage:
-  jz.py [-p <port_num> -w <count> -r -d]
+  jz.py [-p <port_num> -w <count> -d -r -z]
+  jz.py stop
   jz.py (-h | --help)
   jz.py --version
 
 Options:
   -h --help                  Show this screen
   --version                  Show version
-  -w, --workers <count>      Number of workers [default: 4]
+  -w, --workers <count>      Number of workers [default: 1]
   -p, --port <port_num>      Port to listen on [default: 8888]
   -r, --autoreload           Autoreload when source code changes
   -d, --debug                Enable debugging
+  -z, --daemonize            Daemonize
+
+jz.py stop kills the jz daemon
 
 """
 from __future__ import print_function
 from docopt import docopt
-from daemon import runner
-from multiprocessing import reduction, Pipe, Process
 import os
+import sys
 import random
 import socket
-import sys
 import traceback
+from multiprocessing import reduction, Pipe, Process
 try:
     from http_parser.parser import HttpParser
 except ImportError:
@@ -165,28 +168,19 @@ def entry(s, address):
         reduction.send_handle(child.pipe_parent, s.fileno(), child.ch.pid)
 
 
-class App():
-    def __init__(self, args):
-        self.stdin_path = '/dev/null'
-        self.stdout_path = '/dev/tty'
-        self.stderr_path = '/dev/tty'
-        self.pidfile_path = '/tmp/jz.pid'
-        self.pidfile_timeout = 5
-        self.args = args
+def run(self):
+    if args['--debug']:
+        # gevent's monkey patch messes pudb up
+        from streamserver import StreamServer
+        # keep it single threaded
+        args['--workers'] = 0
+    else:
+        from gevent.server import StreamServer
 
-    def run(self):
-        if self.args['--debug']:
-            # gevent's monkey patch messes pudb up
-            from streamserver import StreamServer
-            # keep it single threaded
-            self.args['--workers'] = 0
-        else:
-            from gevent.server import StreamServer
-
-        server.num_workers = int(self.args['--workers'])
-        server.run()
-        s = StreamServer(('0.0.0.0', int(self.args['--port'])), entry)
-        s.serve_forever()
+    server.num_workers = int(args['--workers'])
+    server.run()
+    s = StreamServer(('0.0.0.0', int(args['--port'])), entry)
+    s.serve_forever()
 
 
 if __name__ == '__main__':
@@ -196,10 +190,23 @@ if __name__ == '__main__':
         monitor.start(interval=1.0)
         monitor.track(os.path.join(os.path.dirname(__file__), 'site.cf'))
 
-    app = App()
-
     if args['--daemonize']:
-        daemon_runner = runner.DaemonRunner(app)
-        daemon_runner.do_action()
+        if os.getuid() != 0:
+            print("I need to be root")
+            exit()
+
+        from pep3143daemon import DaemonContext
+        from pep3143daemon import PidFile
+
+        pid = '/var/run/jz.pid'
+        pidfile = PidFile(pid)
+        daemon = DaemonContext(pidfile=pidfile)
+
+        print('pidfile is: {0}'.format(pid))
+        print('daemonizing...')
+
+        daemon.open()
+
+        run(args)
     else:
-        app.run()
+        run(args)
