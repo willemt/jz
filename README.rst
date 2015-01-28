@@ -27,6 +27,12 @@ How do I use this?
 
 All examples make use of the excellent httpie.
 
+Start server
+------------
+.. code-block:: bash
+
+   python jz/jz.py &
+
 Add columns
 -----------
 .. code-block:: bash
