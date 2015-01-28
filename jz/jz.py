@@ -22,12 +22,14 @@ jz.py stop kills the jz daemon
 """
 from __future__ import print_function
 from docopt import docopt
-import os
-import sys
-import random
-import socket
-import traceback
 from multiprocessing import reduction, Pipe, Process
+import atexit
+import os
+import random
+import signal
+import socket
+import sys
+import traceback
 try:
     from http_parser.parser import HttpParser
 except ImportError:
@@ -181,6 +183,15 @@ def run(self):
     server.run()
     s = StreamServer(('0.0.0.0', int(args['--port'])), entry)
     s.serve_forever()
+
+
+@atexit.register
+def goodbye():
+    """
+    Kill children
+    """
+    for child in server.workers:
+        os.kill(child.ch.pid, signal.SIGKILL)
 
 
 if __name__ == '__main__':
