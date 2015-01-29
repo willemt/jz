@@ -21,6 +21,20 @@ class Scan(Op):
             yield row
 
 
+class Seek(Op):
+    """
+    Use sargable operators
+    """
+    def __init__(self, storage, column, start):
+        self.storage = storage
+        self.column = column
+        self.start = start
+
+    def produce(self):
+        for row in self.storage.column_scanner(self.column, start=self.start).produce():
+            yield row
+
+
 class Filter(Op):
     def __init__(self, source, test):
         self.source = source
@@ -35,6 +49,8 @@ class Filter(Op):
 class IdSort(Op):
     """
     Sorts stream based off document ID
+
+    Mostly used for mergeJoin
     """
 
     def __init__(self, source):

@@ -105,3 +105,11 @@ GET JSON documents using multiple clause JSON query
 Security
 ========
 jz does not implement SSL/TLS. You will need to use a SSL terminator (eg. ngnix)
+
+
+TODO
+====
+
+* Add sargable iterators
+* Multi-vendor
+* GROUP BY
