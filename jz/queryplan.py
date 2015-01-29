@@ -6,8 +6,9 @@ import sqlparse
 
 
 def mux(sources, join_type='sort-merge'):
-    """ Join multiple streams into one using join(s) """
-
+    """
+    Join multiple streams into one using join(s)
+    """
     if join_type == 'sort-merge':
         m = iterator.MergeJoin(iterator.IdSort(sources[0]),
                                iterator.IdSort(sources[1]))
@@ -69,13 +70,19 @@ class QueryPlan(object):
 
         wops = _build_where(ast['where'])
 
+        # print(wops)
+
         sources = {}
 
         # Get scans
         # TODO: need to choose SARAGBLEs here
         # https://en.wikipedia.org/wiki/Sargable
         for col, ops in columns(wops).items():
-            sources[col] = iterator.Scan(db, col)
+            for op in ops:
+                if isinstance(op, (operators.LtColOp2, operators.GtColOp2)):
+                    sources[col] = iterator.Seek(db, col, start=op.args[0])
+                else:
+                    sources[col] = iterator.Scan(db, col)
 
         # Apply filters
         for col, ops in columns(wops).items():

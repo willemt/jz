@@ -15,15 +15,19 @@ datatypes = [
 
 
 class Scanner(object):
-    def __init__(self, env, db):
+    def __init__(self, env, db, start=None, end=None):
         self.env = env
         self.db = db
+        self.start = start
+        self.end = end
 
     def produce(self):
         # TODO: use zerocopy
         # with self.env.begin(buffers=True) as txn:
         with self.env.begin() as txn:
             cursor = txn.cursor(self.db)
+            if self.start:
+                cursor.set_range(self.start)
             for k, v in cursor.iternext(keys=True, values=True):
                 yield k, v
 
@@ -82,9 +86,9 @@ class Storage(object):
     def doc_scanner(self):
         return Scanner(self.env, self.docs)
 
-    def column_scanner(self, name):
+    def column_scanner(self, name, start=None, end=None):
         col = self.columns[name]
-        return Scanner(self.env, col.db)
+        return Scanner(self.env, col.db, start=start, end=end)
 
     def produce(self):
         for i in Scanner(self.env, self.docs).produce():
