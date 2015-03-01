@@ -26,10 +26,10 @@ Inspired by the following papers:
 How do I use this?
 ==================
 
-All examples make use of the excellent httpie.
+All examples below make use of the excellent `httpie <https://github.com/jakubroztocil/httpie>`_
 
-Start server
-------------
+Start the server
+----------------
 .. code-block:: bash
 
    sudo ./jz/jz.py -z
@@ -40,12 +40,14 @@ Start server
    daemonizing...
 
 
-Add columns
------------
+Add index
+---------
+Indices allow you to do range queries.
+
 .. code-block:: bash
 
-   http -b --ignore-stdin POST 127.0.0.1:8888/column/ name=x datatype=uint64
-   http -b --ignore-stdin POST 127.0.0.1:8888/column/ name=y datatype=uint64
+   http -h --ignore-stdin POST 127.0.0.1:8888/index/ name=x datatype=uint64
+   http -h --ignore-stdin POST 127.0.0.1:8888/index/ name=y datatype=uint64
 
 .. code-block:: http
    :class: dotted
@@ -53,14 +55,14 @@ Add columns
    HTTP/1.1 200 OK
    Content-Language: en-us
    Content-Type: application/json
+   Content-Length: 2
    Server: jz/0.1.0
-   Content-Length: 0
    
    HTTP/1.1 200 OK
    Content-Language: en-us
    Content-Type: application/json
+   Content-Length: 2
    Server: jz/0.1.0
-   Content-Length: 0
 
 
 POST JSON document
@@ -69,7 +71,7 @@ Post a JSON document with dictionary containing a key "x" with value 10.
 
 .. code-block:: bash
 
-   http -h --ignore-stdin POST 127.0.0.1:8888/ x=10
+   echo '{"x": 10}' | http -h POST 127.0.0.1:8888/
 
 .. code-block:: http
    :class: dotted
@@ -77,8 +79,8 @@ Post a JSON document with dictionary containing a key "x" with value 10.
    HTTP/1.1 200 OK
    Content-Language: en-us
    Content-Type: application/json
+   Content-Length: 2
    Server: jz/0.1.0
-   Content-Length: 0
 
 GET JSON documents using JSON query
 -----------------------------------
@@ -90,10 +92,7 @@ Retrieve a list of documents.
 
 .. code-block:: json
 
-   [
-   {
-     "x": "10"
-   }
+   [{"x": 10}
    ]
 
 GET JSON documents using multiple clause JSON query
@@ -101,18 +100,15 @@ GET JSON documents using multiple clause JSON query
 
 .. code-block:: bash
 
-   http --ignore-stdin POST 127.0.0.1:8888/ x=20 y=50
-   http --ignore-stdin POST 127.0.0.1:8888/ x=70 y=90
-   http --ignore-stdin POST 127.0.0.1:8888/ x=30 y=40
-   
-   echo 'WHERE x > 25 AND 60 < y' | http --print=bB GET 127.0.0.1:8888/
+   echo '{"x": 10}' | http POST 127.0.0.1:8888/
+   echo '{"x": 20, "y": 50}' | http POST 127.0.0.1:8888/
+   echo '{"x": 70, "y": 90}' | http POST 127.0.0.1:8888/
+   echo '{"x": 30, "y": 40}' | http POST 127.0.0.1:8888/
+   echo 'WHERE x > 25 AND 60 < y' | http -b GET 127.0.0.1:8888/
 
 .. code-block:: json
 
-   [
-   {
-     "x": "70", "y": "90"
-   }
+   [{"x": 70, "y": 90}
    ]
 
 

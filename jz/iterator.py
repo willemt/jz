@@ -17,7 +17,7 @@ class Scan(Op):
         self.column = column
 
     def produce(self):
-        for row in self.storage.column_scanner(self.column).produce():
+        for row in self.storage.index_scanner(self.column).produce():
             yield row
 
 
@@ -31,7 +31,7 @@ class Seek(Op):
         self.start = start
 
     def produce(self):
-        for row in self.storage.column_scanner(self.column, start=self.start).produce():
+        for row in self.storage.index_scanner(self.column, start=self.start).produce():
             yield row
 
 

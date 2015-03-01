@@ -3,7 +3,7 @@
 """jz, the JSON database.
 
 Usage:
-  jz.py [-p <port_num> -w <count> -d -r -z]
+  jz.py [-p <port_num> -w <count> -d -r -z --path <data_path>]
   jz.py stop
   jz.py (-h | --help)
   jz.py --version
@@ -16,10 +16,12 @@ Options:
   -r, --autoreload           Autoreload when source code changes
   -d, --debug                Enable debugging
   -z, --daemonize            Daemonize
+  --path <data_path>         Path to data files [default: /var/lib/jz]
 
 jz.py stop kills the jz daemon
 
 """
+
 from __future__ import print_function
 from docopt import docopt
 from multiprocessing import reduction, Pipe, Process
@@ -82,7 +84,7 @@ class Worker(object):
 
     def get(self, r):
         path = r.parser.path()
-        if '/column/' == path:
+        if '/index/' == path:
             response = resources.IndexResource(request=r).handle('list')
             r.socket.sendall(response.text)
             return
@@ -99,8 +101,8 @@ class Worker(object):
         if '/user/' == path:
             apikey = os.urandom(18).encode("hex")
             r.socket.sendall(http.Response(apikey).text)
-        elif '/column/' == path:
-            self.server.storage.create_column(r.parser.body_file(binary=True).read())
+        elif '/index/' == path:
+            self.server.storage.create_index(r.parser.body_file(binary=True).read())
             r.socket.sendall(http.Response('').text)
         else:
             self.server.storage.put(r.parser.body_file(binary=True).read())
@@ -110,7 +112,12 @@ class Worker(object):
 class Server(object):
     def __init__(self):
         self.workers = []
-        self.storage = storage.Storage()
+        self.storage = None
+
+    def init_storage(self, path="db"):
+        """ Initialise DB storage
+        It's necessary to do this after becoming a daemon """
+        self.storage = storage.Storage(path=path)
 
     def run(self):
         # Spawn workers
@@ -130,11 +137,13 @@ def entry(s, address):
         w = Worker(server)
         w.http_request(http.Request(socket=s))
     else:
-        child = server.workers[random.randint(0, len(server.workers)-1)]
+        child = server.workers[random.randint(0, len(server.workers) - 1)]
         reduction.send_handle(child.pipe_parent, s.fileno(), child.ch.pid)
 
 
 def run(self):
+    server.init_storage(path=args['--path'])
+
     if args['--debug']:
         # gevent's monkey patch messes pudb up
         from streamserver import StreamServer
@@ -175,7 +184,7 @@ if __name__ == '__main__':
 
         pid = '/var/run/jz.pid'
         pidfile = PidFile(pid)
-        daemon = DaemonContext(pidfile=pidfile)
+        daemon = DaemonContext(pidfile=pidfile, umask=0777)
 
         print('pidfile is: {0}'.format(pid))
         print('daemonizing...')
