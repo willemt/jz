@@ -1,3 +1,6 @@
+.. image:: https://img.shields.io/badge/rsttst-testable-brightgreen.svg
+   :target: https://github.com/willemt/rsttst
+
 *WARNING: Experimental & just for fun*
 
 jz: Simple JSON database presented as a HTTP REST server
